@@ -129,16 +129,21 @@ export interface IS3FileKey {
   fileName: string;
 }
 
+/**
+ * Helper function for generating S3 keys.
+ *
+ * @export
+ * @param {IS3FileKey} options
+ * @return {*}  {string}
+ */
 export function generateS3FileKey(options: IS3FileKey): string {
-  const keyParts: (string | number)[] = [];
+  const keyParts: (string | number)[] = ['platform'];
 
   if (options.folder) {
     keyParts.push(options.folder);
   }
 
-  if (options.fileName) {
-    keyParts.push(options.fileName);
-  }
+  keyParts.push(options.fileName);
 
   return keyParts.join('/');
 }

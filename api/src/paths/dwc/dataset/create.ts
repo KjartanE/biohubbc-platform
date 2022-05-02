@@ -1,11 +1,10 @@
 import { RequestHandler } from 'express';
 import { Operation } from 'express-openapi';
-import { SYSTEM_ROLE } from '../../../constants/roles';
-import { getAPIUserDBConnection } from '../../../database/db';
+import { getDBConnection } from '../../../database/db';
 import { HTTP400 } from '../../../errors/http-error';
 import { defaultErrorResponses } from '../../../openapi/schemas/http-responses';
 import { authorizeRequestHandler } from '../../../request-handlers/security/authorization';
-import { generateS3FileKey, scanFileForVirus } from '../../../utils/file-utils';
+import { generateS3FileKey, scanFileForVirus, uploadFileToS3 } from '../../../utils/file-utils';
 import { getLogger } from '../../../utils/logger';
 
 const defaultLog = getLogger('paths/dwc/dataset/create');
@@ -15,8 +14,7 @@ export const GET: Operation = [
     return {
       and: [
         {
-          validSystemRoles: [SYSTEM_ROLE.SYSTEM_ADMIN],
-          discriminator: 'SystemRole'
+          discriminator: 'SystemUser'
         }
       ]
     };
@@ -81,7 +79,7 @@ export function submitDataset(): RequestHandler {
       filename: rawMediaFile.originalname
     };
 
-    const connection = getAPIUserDBConnection();
+    const connection = getDBConnection(req['keycloak_token']);
 
     if (!(await scanFileForVirus(rawMediaFile))) {
       throw new HTTP400('Malicious content detected, upload cancelled');
@@ -96,14 +94,12 @@ export function submitDataset(): RequestHandler {
     try {
       await connection.open();
 
-      const attachmentService = new AttachmentService(connection);
-
       const s3Key = generateS3FileKey({
-        projectId: 1,
-        fileName: rawMediaFile.originalname
+        folder: '',
+        fileName: 'dwc-archive'
       });
 
-      await attachmentService.uploadMedia(rawMediaFile, s3Key, metadata);
+      await uploadFileToS3(rawMediaFile, s3Key, metadata);
 
       await connection.commit();
 
