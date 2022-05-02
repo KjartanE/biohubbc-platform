@@ -77,11 +77,9 @@ export function submitDataset(): RequestHandler {
 
     const rawMediaFile: Express.Multer.File = req.files[0];
 
-    // const metadata = {
-    //   filename: rawMediaFile.originalname,
-    //   username: (req['auth_payload'] && req['auth_payload'].preferred_username) || '',
-    //   email: (req['auth_payload'] && req['auth_payload'].email) || ''
-    // };
+    const metadata = {
+      filename: rawMediaFile.originalname
+    };
 
     const connection = getAPIUserDBConnection();
 
@@ -98,14 +96,14 @@ export function submitDataset(): RequestHandler {
     try {
       await connection.open();
 
-      // const attachmentService = new AttachmentService(connection);
+      const attachmentService = new AttachmentService(connection);
 
       const s3Key = generateS3FileKey({
         projectId: 1,
         fileName: rawMediaFile.originalname
       });
 
-      // await attachmentService.uploadMedia(projectId, rawMediaFile, s3Key, S3Folder.ATTACHMENTS, metadata);
+      await attachmentService.uploadMedia(rawMediaFile, s3Key, metadata);
 
       await connection.commit();
 
